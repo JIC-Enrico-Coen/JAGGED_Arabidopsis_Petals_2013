@@ -1,0 +1,143 @@
+% Model combinations explored in the paper: All the models are Organiser-based Dynamic Models. 
+% They differ in the (-)organiser presence or positon and in the distribution and strength of the DGRAD factor promoting Kper.
+% Convergent model:                                                                modelname='PROXORG',  (1)               submodel='G_DGRAD_topdist',(2)   
+% Divergent model:                                                                 modelname='PROXDISTbroad',(3)           submodel='G_DGRAD_lobe',(3)     
+% Divergent model with reduced or null DGRAD activity:                             modelname='PROXDISTbroad',(3)           submodel='G_DGRAD_reduced',(4) 
+% Divergent model with reduced or null DGRAD activity and discontinuous DISTORG:   modelname='PROXDISTbroad_discont',(4)   submodel='G_DGRAD_reduced',(4)   
+% Divergent model with ectopic DGRAD activity and extended DISTORG:                modelname='PROXDISTbroad_extended',(5)  submodel='G_DGRAD_extended',(5)   
+
+if Steps(m) == 0
+    
+    % Model Visualisation and Setup Parameters
+    m = leaf_setproperty( m, 'mingradient', 0, 'timestep', 1, 'userpolarisation',false, 'bioAsplitcells', false, 'allowSplitBio',false);
+    m = leaf_plotoptions( m, 'hiresdpi', 900,'FEthinlinesize', 3, 'layeroffset', 0.01,'arrowthickness', 2.8,'highgradcolor',[0,0,0],'lowgradcolor',[0,0,1] );
+       
+    % If wanting to fix which morphogens to plot and in which layers
+    %  m = leaf_plotoptions( m,'morphogen',{'ID_PROXORG','ID_DISTORG','s_gdist', 's_gpet'}); %to define which morphogens to plot
+    %  m = leaf_mgen_plotpriority( m, {'ID_PROXORG','ID_DISTORG','s_gdist', 's_gpet'},[2,2,1,1]);% to specify the layers in which they appear
+    %  m = leaf_mgen_plotpriority( m, {'s_gdist', 's_gtopmar'},[2,1]); %same
+
+    % to specify certain vertexs to measure width at different positions along the proximodistal axis of the petal// the maximum lenght of the petal // and the lenght of petal claw
+    m.userdata.length1 = [17 1190];
+    m.userdata.width1 = [1201 1179];
+    m.userdata.width2 = [1206 1174];
+    m.userdata.width3 = [1211 1169];
+    m.userdata.width4 = [1216 1164];
+    m.userdata.width5 = [1221 1159];
+    m.userdata.width6 = [307 645];
+    m.userdata.petwidth = [1 373];
+    m.userdata.lengthpet = [17 357];
+    
+    % to mark the position of the region where DGRAG activity is 1 for Figure preparation porpouses.
+    m.userdata.dgrad1 = [1200 1180]; % convergent model
+    m.userdata.dgrad2 = [1213 1167]; % divergent model
+    m.userdata.dgrad3 = [239 597]; % extended model. 
+    % clock time step 1h
+    m.userdata.clock = 1;
+    
+    %stablish array for the sectors and number of edges in the sectors
+    m.secondlayer.cell3dcoords = [];
+    m.userdata.celledges = 20;
+    %% Models
+    % Organiser-based models with a (+) organiser
+    m.userdata.ranges.modelname.range{1}='PROXORG'; % no distal organiser
+    m.userdata.ranges.modelname.range{2}='Y_axis'; %POL based on XY
+    m.userdata.ranges.modelname.index = 1;
+    
+    % Organiser-based model adding a (-) organiser
+    m.userdata.ranges.submodel.range{1}='NONE'; %only proxorg
+    m.userdata.ranges.submodel.range{2}='PROXDISTORG'; % narrow distal organiser
+    m.userdata.ranges.submodel.range{3}='PROXDISTbroad'; % broad distal organiser  THIS ONE (Elasticity is 0.001)
+    m.userdata.ranges.submodel.range{4}='PROXDISTbroad_extended'; %extended broad distal organiser
+    m.userdata.ranges.submodel.range{5}='PROXDISTbroad_discont'; % broad distal organiser discontinuos// need to copy this from previous model
+    m.userdata.ranges.submodel.index =3;
+    
+    % Organiser-based models with different organiser positions
+    m.userdata.ranges.modelversion.range{1}='NO_G';
+    m.userdata.ranges.modelversion.range{2}='G_DGRAD_topdist'; %convergent model
+    m.userdata.ranges.modelversion.range{3}='G_DGRAD_lobe'; % divergent model
+    m.userdata.ranges.modelversion.range{4}='G_DGRAD_reduced'; % jag mutant 30% AND THIS ONE (Elasticity is 0.001)
+    m.userdata.ranges.modelversion.range{5}='G_DGRAD_extended'; %JAG ectopic expression, broader domain of JAG
+     m.userdata.ranges.modelversion.range{6}='G_DGRAD_nul'; %jag mutant null AND THIS ONE (Elasticity is 0.001)
+    m.userdata.ranges.modelversion.range{7}='G_DGRAD_elas'; %to try with reduce elasticity (instead of 0.001 used in models so far)
+    m.userdata.ranges.modelversion.index =4;
+    
+    % choosing the time to induce the virtual clones   //I NEED TO LEVE ONLY
+    % THE ONES I USE
+    m.userdata.ranges.modelcells.range{1} = 'D20';
+    m.userdata.ranges.modelcells.range{2} = 'E170';
+    m.userdata.ranges.modelcells.range{3} = 'nocells';
+    m.userdata.ranges.modelcells.index =3;
+    %% Parameters
+    % fixed levels of POL at bottom
+    m.userdata.ranges.bpol.range = [0.08 0.8 0.12]; % levels of POL at the PROXORG region are fixed to this value
+    m.userdata.ranges.bpol.index = 2;
+    %   Distorg_id region,  +/- 20% of original canvas lenght (0.03mm), ie +/-0.006
+    m.userdata.ranges.distorgpoint.range = [0.0207 0.0147 0.0087];
+    m.userdata.ranges.distorgpoint.index = 2;
+    m.userdata.ranges.distorgbroad.range = [0.006 0 -0.006];
+    m.userdata.ranges.distorgbroad.index = 2;
+    m.userdata.ranges.distorgextended.range = [-0.001 -0.007 -0.013];
+    m.userdata.ranges.distorgextended.index = 2;
+    %   Parameters for plateau position for DGRAD (region with levels=1),  +/- 20% of original canvas lenght (0.03mm), ie +/-0.006
+    m.userdata.ranges.pldgradconv.range = [0.019 0.013 0.007];
+    m.userdata.ranges.pldgradconv.index = 2;
+    m.userdata.ranges.pldgraddiv.range = [0.012 0.006 0];
+    m.userdata.ranges.pldgraddiv.index = 2;
+    m.userdata.ranges.pldgradext.range = [0.001 -0.005 -0.011];
+    m.userdata.ranges.pldgradext.index = 2;
+    %   Parameters for basic growth rates Kpar and Kper, +/- 20%
+    m.userdata.ranges.bkparconv.range = [0.0144 0.018 0.0216];
+    m.userdata.ranges.bkparconv.index = 2;
+    m.userdata.ranges.bkpardiv.range = [0.0152 0.019 0.0228];
+    m.userdata.ranges.bkpardiv.index = 2;
+    m.userdata.ranges.bkper.range = [0.0078 0.0065 0.0052];
+    m.userdata.ranges.bkper.index = 2;
+    %  Parameters for promotion of Kper by DGRAD   +/- 20%
+    m.userdata.ranges.pdgradconv.range = [2.16 1.8 1.44];
+    m.userdata.ranges.pdgradconv.index = 2;
+    % parameters for the DRAG model and the DGRAG_reduced model to 0% or 30% activity
+    m.userdata.ranges.pdgraddiv.range = [0.33 1.1 0];
+    m.userdata.ranges.pdgraddiv.index = 2;
+end
+
+modelname = m.userdata.ranges.modelname.range{m.userdata.ranges.modelname.index};
+submodel = m.userdata.ranges.submodel.range{m.userdata.ranges.submodel.index};
+modelversion = m.userdata.ranges.modelversion.range{m.userdata.ranges.modelversion.index};
+modelcells = m.userdata.ranges.modelcells.range{m.userdata.ranges.modelcells.index};
+
+disp(sprintf('\n------> modelname %s submodel %s modelversion %s modelcells %s\n',modelname,submodel,modelversion,modelcells));
+
+bpol = m.userdata.ranges.bpol.range(m.userdata.ranges.bpol.index);
+distorgpoint = m.userdata.ranges.distorgpoint.range(m.userdata.ranges.distorgpoint.index);
+distorgbroad = m.userdata.ranges.distorgbroad.range(m.userdata.ranges.distorgbroad.index);
+distorgextended = m.userdata.ranges.distorgextended.range(m.userdata.ranges.distorgextended.index);
+pldgradconv = m.userdata.ranges.pldgradconv.range(m.userdata.ranges.pldgradconv.index);  
+pldgraddiv = m.userdata.ranges.pldgraddiv.range(m.userdata.ranges.pldgraddiv.index); 
+pldgradext = m.userdata.ranges.pldgradext.range(m.userdata.ranges.pldgradext.index); 
+bkper = m.userdata.ranges.bkper.range(m.userdata.ranges.bkper.index); 
+bkparconv = m.userdata.ranges.bkparconv.range(m.userdata.ranges.bkparconv.index); 
+bkpardiv = m.userdata.ranges.bkpardiv.range(m.userdata.ranges.bkpardiv.index); 
+pdgradconv = m.userdata.ranges.pdgradconv.range(m.userdata.ranges.pdgradconv.index); 
+pdgraddiv = m.userdata.ranges.pdgraddiv.range(m.userdata.ranges.pdgraddiv.index); 
+
+%function m=leaf_vertex_set_monitor(m,realtime,RegionLabels,Morphogens,start_figno) monitor morphogen levels at a set of vertices.
+%Several morphogens can be monitored simultaneously.
+%The results can be recorded and an output in opne figure given over time. The pattern is saved automatically in the model directory. 
+% made by Erika
+
+% if Steps(m)>1 ;% PUT it back!!!!
+%     m=leaf_vertex_follow_mgen_NoFigure(m,'RealTime',realtime,'ZeroTime',0,...
+%     'REGIONLABELS',{'V_SEAM', 'V_SEAM', 'V_SEAM', 'V_SEAM','V_SEAM','V_SEAM'},...
+%     'MORPHOGENS',{'KAPAR', 'KAPER', 'Kmax', 'Kmin', 'KAREA','KML'},... %, 'KAREA','KML'
+%     'PROFILES',false,...
+%     'ALLPOINTS',true, 'ENDTIME',12, ...
+%     'RECORDINTERVAL', 12);
+% 
+% end   
+
+% FOR THIS EXPERIMENTAL STUFF PLEASE CONTACT THE AUTHORS
+% m = leaf_MeasureDimensions2(m, 'HEADINGS',{'L','W1','W2','W3','W4','W5','W6','petW','Lpet'},...
+%     'LINES',{m.userdata.length1,m.userdata.width1,m.userdata.width2,m.userdata.width3,m.userdata.width4,m.userdata.width5,m.userdata.width6,...
+%     m.userdata.petwidth, m.userdata.lengthpet},...
+%     'LENWID',[2 1 1 1 1 1 1 1 2],'ENDTIME',312, 'RECORDINTERVAL',0:12:312);

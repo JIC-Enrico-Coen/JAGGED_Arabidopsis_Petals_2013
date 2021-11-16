@@ -1,0 +1,17 @@
+% m = leaf_mgen_plotpriority( m, {'id_proxorg','ID_DISTORG','s_gdistgrad'},[2,2,1]);
+% 
+%   % change offset of cells layers
+ %  m = leaf_plotoptions( m, 'hiresdpi', 900,'FEthinlinesize',3, 'layeroffset', 0.04,'arrowthickness', 2.8,'highgradcolor',[0,0,0],'lowgradcolor',[0,0,1] );
+% 
+%   %this one to chnage cell colours   
+%         num = size(m.secondlayer.cellcolor,1);
+%         col = zeros(num,3);
+%         col(:,2) = 0.7; %which of the 3 columns in RBG you replace
+% % %        %col(:,3)=1;% or whatever
+%         m.secondlayer.cellcolor = col;%replace color with new array of colors.
+  
+%  if Steps(m) == 1
+%          m = leaf_subdivide(m,'morphogen','V_SUBDIVISION','min',0.1,'max',2,'mode','mid');  
+%   end
+%  
+% In this section you may modify the mesh in any way whatsoever.

@@ -1,0 +1,307 @@
+
+
+if Steps(m) == 1 % a bit later to give the cluster the chance to catch up.
+    
+    % id_v-length will include all the points for length and width set up at the begining
+     v_length_p([m.userdata.length1;m.userdata.width1;m.userdata.width2;m.userdata.width3;m.userdata.width4;m.userdata.width5;m.userdata.width6;...
+         m.userdata.petwidth;m.userdata.lengthpet]) =1;  
+        
+     % creates the path for the morphogen gradient measuring function
+     v_seam_p(abs(m.nodes(:,1))<0.0005)=1;
+     
+     borderedges = find( m.edgecells(:,2)==0 );
+     bordernodes = unique( m.edgeends( borderedges, : ) );
+     id_rim_p( bordernodes ) = 1;
+     
+     %am I using it?
+    v_subdivision_p(m.nodes(:,2)> -0.002)=1;  % 65
+end
+
+if Steps(m)==2
+    %induce the virtual clones.
+    switch modelcells
+        case 'D20'
+            m = leaf_makesecondlayer( m, ...  % This function adds biological cells.
+                'mode', 'each', ...  % Make biological cells randomly scattered over the leaf.
+                'relarea', 1/20,...% 1/30. try with bigger cells.not sure about the total area. beforer 1/35
+                'probpervx', 'V_SECT', ...
+                'numcells',70,...%number of clones
+                'sides', 20, ...  % Each cell is approximated as a 6-sided regular polygon.
+                'colors', [0,0.6,0] , ...  % [1,0.3,0.2]   Each cell is has a different colour;
+                'colorvariation', 0.25,...
+                'add', true,...
+                'allowoverlap', false);
+            % 'allowoveredge', false);  % use to prevent cells to go over the edge of the canvas. These cells are added to any cells existing already.
+            m = leaf_setproperty( m,'colorvariation', 0, 'bioAsplitcells', false, 'allowSplitBio',false);
+        case 'nocells'
+    end
+end
+
+if Steps(m)>2
+    switch modelcells
+        case {'D20'}
+            %morphogen that will represent the sectors on
+            v_sect_p(:) =1;
+    end
+end
+
+if Steps(m) == 4
+   %% set up organisers and Polariser
+   switch modelname
+       
+%        % in this way you fix the polairty to the initial Y position of each
+%        % node but then it does not change with the organ deformation
+        case 'Y_axis'
+%            % setup polarity parallel to the external y-axis throughout the
+%            % simulation
+%            P = max(m.nodes(:,2)) - m.nodes(:,2);
+%            P = P/max(P)*bpol;
+%            
+%            m.mgen_production(:,polariser_i) = 0;
+%            m = leaf_mgen_conductivity( m, 'polariser', 0 );
+%            m = leaf_mgen_absorption( m, 'polariser', 0 );
+%            
+           
+           %set up the (+) organiser region
+       case 'PROXORG'
+           proxorg_ind= m.nodes(:,2)<=min(m.nodes(:,2))+0.0006; % this value could be a variable
+           id_proxorg_p(proxorg_ind) = 1;
+           % id_proxorg_l = id_proxorg_p * id_proxorg_a;
+           
+           %fix polariser levels at the PROXORg region
+           P(proxorg_ind) = bpol; %0.8
+           m = leaf_fix_mgen( m, polariser_i,'vertex',find(proxorg_ind),'fix', 1); %this is another way of fixing, instead of doing the clamp thing
+           
+           
+           % add the distal organiser region
+           switch submodel
+               case 'PROXDISTORG' % narrow distal
+                   distorg_ind= id_rim_p.*m.nodes(:,2)>distorgpoint; % distorgpoint 0.0147
+                   id_distorg_p(distorg_ind) = 1;
+                   
+               case 'PROXDISTbroad' % broad distal. WT petal
+                   distorg_ind= m.nodes(:,2)> distorgbroad; % distorgbroad 0
+                   id_distorg_p(distorg_ind) = 1;
+                   id_distorg_p = id_distorg_p.*id_rim_p;
+                   id_distorg_l = id_distorg_p * id_distorg_a;
+                   
+               case 'PROXDISTbroad_extended' %extended broad distal organiser
+                   distorg_ind= m.nodes(:,2)> distorgextended; % distorgextended -0.007
+                   id_distorg_p(distorg_ind) = 1;
+                   id_distorg_p = id_distorg_p.*id_rim_p;
+                   id_distorg_l = id_distorg_p * id_distorg_a;
+                   
+               case 'PROXDISTbroad_discont' %broad distal organiser discontinuos
+                   id_distorg_p(id_rim_p.*m.nodes(:,2)>0 & m.nodes(:,2)<0.0085)=1 ; % 
+                   id_distorg_p(id_rim_p.*m.nodes(:,2)>0.011 & m.nodes(:,2)<0.0149 ) =1;% 
+                   %id_distorg_p(distorg_ind) = 1;
+                   id_distorg_p = id_distorg_p.*id_rim_p;
+                   id_distorg_l = id_distorg_p * id_distorg_a;
+                   
+               case 'NONE'
+               otherwise
+                   error('You have to specify an existing submodel');
+           end    
+                   % Polariser parameters for all models
+                   m = leaf_mgen_conductivity(m, polariser_i, 0.0005); % difussion constant
+                   m = leaf_mgen_absorption(m, polariser_i, 0.003); % decay constant
+                   m = leaf_mgen_dilution(m, polariser_i, 0);
+           
+           
+               otherwise
+                   error('You have to specify an existing modelname');
+   end  
+    
+        %% FACTORS
+    % Factors influencing growth
+    switch modelversion
+        case 'G_DGRAD_topdist' %DGRAD domain used for convergent model
+            %domain of DGRAD
+            id_gdistgrad_p(m.nodes(:,2)> pldgradconv)=1; %pldgradconv 0.013
+            id_gdistgrad_l=id_gdistgrad_p*id_gdistgrad_a;
+            %visualise DGRAG plateau region
+            v_dgrad_p([m.userdata.dgrad1]) =1;
+            
+        case {'G_DGRAD_lobe', 'G_DGRAD_reduced','G_DGRAD_elas'} %DGRAD domain used for divergent model
+            %  domain of DGRAD
+            id_gdistgrad_p(m.nodes(:,2)> pldgraddiv)=1; %pldgraddiv 0.006
+            id_gdistgrad_l=id_gdistgrad_p*id_gdistgrad_a;
+            %visualise DGRAG plateau region
+            v_dgrad_p([m.userdata.dgrad2]) =1;
+            
+        case  'G_DGRAD_extended'
+            %  domain of DGRAD %DGRAD domain used for ectopic JAG model
+            id_gdistgrad_p(m.nodes(:,2)> pldgradext)=1; %pldgradext -0.005
+            id_gdistgrad_l=id_gdistgrad_p*id_gdistgrad_a;
+            %visualise DGRAG plateau region
+            v_dgrad_p([m.userdata.dgrad3]) =1;
+        case {'NO_G','G_DGRAD_nul'} %look how to put best te Dgrad reduced
+            
+        otherwise
+    end
+            % DRAG diffusion parameters
+            m = leaf_mgen_conductivity(m, s_gdistgrad_i, 0.01);
+            m = leaf_mgen_absorption(m, s_gdistgrad_i, 0.01);
+            m = leaf_mgen_dilution(m, s_gdistgrad_i, 0);
+            m.mgen_production(:, s_gdistgrad_i) = id_gdistgrad_p;
+                        
+            % fix DRAG levels to 1 in DRAG domain
+            m.morphogenclamp( id_gdistgrad_p==1, s_gdistgrad_i ) = 1;
+            s_gdistgrad_p = 1 * id_gdistgrad_p;
+            
+            %define petiol region
+            gpet_ind= m.nodes(:,2)<(-0.014);
+            id_gpet_p(gpet_ind) = 1;
+            %define levels of DRAG in petiole region to be 0
+            s_gdistgrad_p(gpet_ind) = 0;
+            m = leaf_fix_mgen( m, s_gdistgrad_i,'vertex',find(gpet_ind),'fix', 1);
+ 
+elseif Steps(m)==5
+ %% fix DRAG
+     switch modelversion
+       case {'G_DGRAD_topdist', 'G_DGRAD_lobe','G_DGRAD_reduced','G_DGRAD_extended','G_DGRAD_elas' }
+       m = leaf_mgen_conductivity(m, s_gdistgrad_i, 0);
+       m = leaf_mgen_absorption(m, s_gdistgrad_i, 0);
+       m = leaf_mgen_dilution(m, s_gdistgrad_i, 0);
+       m.mgen_production(:, s_gdistgrad_i) = 0;
+       otherwise
+     end    
+elseif Steps(m)==23  
+    switch modelname
+        case 'Y_axis_fixed'
+             m = leaf_setproperty( m, 'mingradient', 200); %2
+             
+             m = leaf_mgen_conductivity(m, polariser_i, 0);
+             m = leaf_mgen_absorption(m, polariser_i, 0);
+        otherwise
+    end
+ elseif Steps(m)>23
+ %%  KRN
+ switch modelversion
+     case 'NO_G'% gives a bit short petal but wider as well, so i can not increase L wo increasing further W
+         if Steps(m)>=24 && Steps(m)<312
+             kapar_p= bkparconv;
+             kbpar_p=kapar_p;
+             
+             kaper_p= bkper;
+             kbper_p=kaper_p;
+         end
+         %
+     case 'G_DGRAD_topdist'
+         if Steps(m)>=24 && Steps(m)<312
+             kapar_p= bkparconv; % bkparconv 0.018
+             kbpar_p=kapar_p;
+             
+             kaper_p= bkper.*pro(pdgradconv,s_gdistgrad_l); % bkper 0.0065// pdgradconv 1.8 // change to 0.5 just to try issue of heigh
+             kbper_p=kaper_p;
+         end
+         
+     case {'G_DGRAD_lobe','G_DGRAD_extended' }% 
+         if Steps(m)>=24 && Steps(m)<312
+             kapar_p= bkpardiv; %bkpardiv 0.019
+             kbpar_p=kapar_p;
+             
+             kaper_p= bkper.*pro(pdgraddiv,s_gdistgrad_l); %bkper// pdgraddiv 1.1
+             kbper_p=kaper_p;
+         end
+     case 'G_DGRAD_reduced'
+         if Steps(m)>=24 && Steps(m)<312
+             kapar_p= bkpardiv; %bkpardiv 0.019
+             kbpar_p=kapar_p;
+             
+             kaper_p= bkper.*pro(0.33,s_gdistgrad_l); %bkper// pdgraddiv 1.1// 30% is 0.33, changed to 75% just to chekc the length and now 50%
+             kbper_p=kaper_p;
+         end
+     case 'G_DGRAD_nul'
+         if Steps(m)>=24 && Steps(m)<312
+             kapar_p= 0.018; %bkpardiv 0.019 just to try now with 0.0001, changed to 0.018
+             kbpar_p=kapar_p;
+             
+             kaper_p= bkper.*pro(0,s_gdistgrad_l); %bkper// pdgraddiv 1.1
+             kbper_p=kaper_p;
+         end
+         
+     case'G_DGRAD_elas';
+         if Steps(m)>=24 && Steps(m)<312
+             kapar_p= 0.018; % instead of bkpardiv 0.019
+             kbpar_p=kapar_p;
+             
+             kaper_p= bkper.*pro(1.1,s_gdistgrad_l); %bkper// pdgraddiv 1.1 
+             kbper_p=kaper_p;
+         end
+         
+     otherwise
+         error('You have to specify an existing modelversion');
+         
+ end
+end
+%%induce virtual clones later in petal development
+if Steps(m)==71
+    switch modelcells
+        case 'E170'
+            m = leaf_makesecondlayer( m, ...  % This function adds biological cells.
+                'mode', 'each', ...  % Make biological cells randomly scattered over the leaf.
+                'relarea', 1/170,...% 1/30. try with bigger cells.not sure about the total area. beforer 1/35
+                'probpervx', 'V_SECT', ...
+                'numcells',120,...%number of clones
+                'sides', 20, ...  % Each cell is approximated as a 6-sided regular polygon.
+                'colors', [0,0.7,0] , ...  % [1,0.3,0.2]   Each cell is has a different colour;
+                'colorvariation', 0.3,...
+                'add', true,...
+                'allowoverlap', false);
+            % 'allowoveredge', false);  % These cells are added to any cells existing already.
+            m = leaf_setproperty( m,'colorvariation', 0, 'bioAsplitcells', false, 'allowSplitBio',false);
+        case 'nocells'
+    end
+elseif Steps(m)>71
+    switch modelcells
+        case 'E170'
+            %morphogen that will represent the sectors on
+            v_sect_p(:) =1;
+    end
+end
+%% Polariser import at (-) organiser for all models
+switch modelname
+    case 'Y_axis'% now it is a Y_axis dynamic
+        P = max(m.nodes(:,2)) - m.nodes(:,2);
+        P = P/max(P)*bpol;
+        
+           m.mgen_production(:,polariser_i) = 0;
+           m = leaf_mgen_conductivity( m, 'polariser', 0 );
+           m = leaf_mgen_absorption( m, 'polariser', 0 );
+    otherwise
+        if Steps(m)>=2  && Steps(m)<=120 %
+            m.mgen_production(:, polariser_i) =  -id_distorg_l*5.*P; %
+        elseif Steps(m)>120   && Steps(m)<=312 %need to go down as levels go down
+            m.mgen_production(:, polariser_i) =  -id_distorg_l*1.*P;
+        end
+end
+
+%%calucalte model outputs
+% m = calculateOutputs(m);
+% [acA,frames,T1] = tensorsToComponentsTmatrix( m.outputs.actualstrain.A, m.cellFrames );
+% kmax_p(:) = perFEtoperVertex( m, max(acA(:,[1 2]),[],2));
+% kmin_p(:) = perFEtoperVertex( m, min(acA(:,[1 2]),[],2));
+% 
+% karea_p(:) = kmax_p+kmin_p;
+% kaniso_p(:) = abs(kmax_p-kmin_p)./max(kmax_p,kmin_p);
+% 
+% 
+% % determine the K along the midline.
+% pos = find(v_seam_p>0.5);
+% [smid, smidnorm] = leaf_midlinefactors(m,acA,T1,pos);
+% kml_p(:) = smid; %parallel to the seam line // to y axis
+%klat_p(:) = smidnorm; %perpendicular to v-seam line
+
+
+
+
+%    %at the moment is doing it every time     
+%         num = size(m.secondlayer.cellcolor,1);
+%         col = zeros(num,3);
+%         col(:,2) = 0.6; %which of the 3 columns in RBG you replace
+% % %        %col(:,3)=1;% or whatever
+%         m.secondlayer.cellcolor = col;%replace color with new array of colors.
+% %         
+%         [inplane,outofplane] = splitVector( m.outputs.rotations,m.unitcellnormals );
+%         rot_p(:) = perFEtoperVertex( m, inplane);

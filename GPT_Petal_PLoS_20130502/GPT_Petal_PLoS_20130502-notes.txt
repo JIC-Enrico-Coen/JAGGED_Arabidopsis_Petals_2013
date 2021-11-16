@@ -1,0 +1,7 @@
+re-strat petal models
+Models Mpet6-7-8 are all basically the same.
+this model is a simplification of the previous models with just the cases that appear in the fist verison of the PloS Biology submission 
+I will follow same layout as Erika did for the leaf (Science paper)
+
+version with parameters and all, but it is not working and not sure where the error is
+Finished
